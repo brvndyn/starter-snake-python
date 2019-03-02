@@ -46,6 +46,117 @@ def start():
     return start_response(color)
 
 
+
+
+def decideMove(data):
+    height = data["board"]["height"]
+    width = data["board"]["width"]
+
+    badCoords = []
+
+    for x in range(width):
+        bad = (x, -1)
+        badCoords.append(bad)
+        bad = (x, height)
+        badCoords.append(bad)
+
+    for y in range(width):
+        bad = (-1, y)
+        badCoords.append(bad)
+        bad = (width, y)
+        badCoords.append(bad)
+
+
+    for snake in data["board"]["snakes"]:
+        for xy in snake["body"]:
+            bad = (xy["x"], xy["y"])
+            badCoords.append(bad)
+
+
+    head = data["you"]["body"][0]
+    possibleMoves = []
+
+    # left
+    coord = (head["x"]-1, head["y"])
+    if coord not in badCoords:
+        possibleMoves.append("left")
+
+    # right
+    coord = (head["x"]+1, head["y"])
+    if coord not in badCoords:
+        possibleMoves.append("right")
+
+    # up
+    coord = (head["x"], head["y"]-1)
+    if coord not in badCoords:
+        possibleMoves.append("up")
+
+    # down
+    coord = (head["x"], head["y"]+1)
+    if coord not in badCoords:
+        possibleMoves.append("down")
+
+
+
+    # final decision
+
+    if len(possibleMoves) > 0:
+        finalMove = foodSearch(possibleMoves, data)
+        print (foodSearch(possibleMoves, data))
+        if (finalMove == "no food"):
+            finalMove = random.choice(possibleMoves)
+
+    else:
+        # doesn't really matter
+        finalMove = random.choice(["left", "right", "up", "down"])
+
+    print("badCoords={}".format(badCoords))
+    print("possibleMoves={}".format(possibleMoves))
+    print("finalMove={}".format(finalMove))
+    return finalMove
+
+
+
+def foodSearch(possibleMoves, data):
+    head = data["you"]["body"][0]
+    closest = {}
+    closestDif = 300
+    for food in data["board"]["food"]:
+        differenceX = head["x"] - food["x"]
+        differenceY = head["y"] - food["y"]
+
+        differenceTotal = abs(differenceX)+abs(differenceY)
+
+        if (differenceTotal < closestDif):
+            closest = food
+            print("")
+            print(closest)
+            print("")
+            closestDif = differenceTotal
+
+    if (head["x"] > closest["x"]):
+        for dir in possibleMoves:
+            if (dir == "left"):
+                return "left"
+
+    if (head["x"] < closest["x"]):
+        for dir in possibleMoves:
+            if (dir == "right"):
+                return "right"
+
+    if (head["y"] > closest["y"]):
+        for dir in possibleMoves:
+            if (dir == "up"):
+                return "up"
+
+    if (head["y"] < closest["y"]):
+        for dir in possibleMoves:
+            if (dir == "down"):
+                return "down"
+
+    return "no food"
+
+
 @bottle.post('/move')
 def move():
     data = bottle.request.json
@@ -56,8 +167,7 @@ def move():
     """
     print(json.dumps(data))
 
-    directions = ['up', 'down', 'left', 'right']
-    direction = random.choice(directions)
+    direction = decideMove(data)
 
     return move_response(direction)
 
